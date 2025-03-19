@@ -2,13 +2,7 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
-use App\Http\Controllers\PhoneCallController;
-use Vonage\Voice\NCCO\NCCO;
-use Vonage\Voice\NCCO\Action\Stream;
-use Vonage\Voice\NCCO\Action\Input;
 use Illuminate\Support\Facades\Storage;
 
 class PhoneCallControllerTest extends TestCase
@@ -26,7 +20,7 @@ class PhoneCallControllerTest extends TestCase
     public function test_answer_returns_valid_ncco()
     {
         $response = $this->post('/api/voice/answer');
-        
+
         $response->assertStatus(200);
         $response->assertJsonStructure([
             [

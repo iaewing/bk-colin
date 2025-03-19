@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use Vonage\Voice\NCCO\NCCO;
 use Illuminate\Support\Facades\Log;
-use Vonage\Voice\NCCO\Action\Talk;
 use Vonage\Voice\NCCO\Action\Stream;
 use Illuminate\Support\Facades\Storage;
 use Vonage\Voice\NCCO\Action\Input;
