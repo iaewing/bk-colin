@@ -2,14 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use Vonage\Voice\NCCO\NCCO;
+use Illuminate\Http\Request;
 use Vonage\Voice\NCCO\Action\Talk;
+use Illuminate\Support\Facades\Log;
 
 class PhoneCallController extends Controller
 {
     public function answer()
     {
+       Log::info('Answer');
+       Log::info(request()->all());
         $ncco = new NCCO();
         
         $talk = new Talk('Hello! This is your first audio message.');
