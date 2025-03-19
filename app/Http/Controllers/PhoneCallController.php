@@ -5,8 +5,6 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Vonage\Voice\NCCO\NCCO;
 use Vonage\Voice\NCCO\Action\Talk;
-use Vonage\Voice\NCCO\Action\Pause;
-use Vonage\Voice\NCCO\Action\Stream;
 
 class PhoneCallController extends Controller
 {
@@ -17,8 +15,8 @@ class PhoneCallController extends Controller
         $talk = new Talk('Hello! This is your first audio message.');
         $ncco->addAction($talk);
         
-        $pause = new Pause(rand(10, 20));
-        $ncco->addAction($pause);
+        // $pause = new Talk('', ['bargeIn' => false, 'loop' => 0, 'level' => 0]);
+        // $ncco->addAction($pause);
         
         $talk2 = new Talk('This is your second audio message. Goodbye!');
         $ncco->addAction($talk2);
