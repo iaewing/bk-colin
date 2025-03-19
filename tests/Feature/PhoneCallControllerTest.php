@@ -7,8 +7,9 @@ use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
 use App\Http\Controllers\PhoneCallController;
 use Vonage\Voice\NCCO\NCCO;
-use Vonage\Voice\NCCO\Action\Talk;
-use Vonage\Voice\NCCO\Action\Pause;
+use Vonage\Voice\NCCO\Action\Stream;
+use Vonage\Voice\NCCO\Action\Input;
+use Illuminate\Support\Facades\Storage;
 
 class PhoneCallControllerTest extends TestCase
 {
@@ -24,23 +25,25 @@ class PhoneCallControllerTest extends TestCase
 
     public function test_answer_returns_valid_ncco()
     {
-        $response = $this->post('/voice/answer');
+        $response = $this->post('/api/voice/answer');
         
         $response->assertStatus(200);
         $response->assertJsonStructure([
             [
-                'action' => 'talk',
-                'text' => 'Hello! This is your first audio message.'
+                'action' => 'stream',
+                'streamUrl' => Storage::disk('colin_audio')->url('hello.wav')
             ],
             [
-                'action' => 'pause',
-                'length' => function ($value) {
-                    return $value >= 10 && $value <= 20;
-                }
+                'action' => 'input',
+                'type' => ['speech'],
+                'speech' => [
+                    'endOnSilence' => 2
+                ],
+                'eventUrl' => 'https://bk-colin.test/voice/event'
             ],
             [
-                'action' => 'talk',
-                'text' => 'This is your second audio message. Goodbye!'
+                'action' => 'stream',
+                'streamUrl' => Storage::disk('colin_audio')->url('feedback.wav')
             ]
         ]);
     }
