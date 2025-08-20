@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Prism\Prism\Enums\Provider;
 use Prism\Prism\Prism;
+use Vonage\Voice\NCCO\Action\Talk;
 use Vonage\Voice\NCCO\NCCO;
 use Illuminate\Support\Facades\Log;
 use Vonage\Voice\NCCO\Action\Stream;
@@ -42,9 +43,13 @@ class PhoneCallController extends Controller
         $ncco = new NCCO();
         $input = request()->all();
 
-        $topResult = $input['speech']['results'][0] ?? null;
+        $topResult = $input['speech']['results'][0]['text'] ?? null;
 
         Log::info($topResult);
+
+        if (!$topResult) {
+            return response()->json(['status' => 'ok']);
+        }
 
         $response = Prism::text()
             ->using(Provider::Anthropic, 'claude-3-5-haiku-20241022')
@@ -72,6 +77,6 @@ class PhoneCallController extends Controller
 //        $stream2 = new Stream(Storage::disk('colin_audio')->url('feedback.wav'));
 //        $ncco->addAction($stream2);
 
-        return response()->json(['status' => 'ok']);
+        return response()->json($ncco->toArray());
     }
 }
