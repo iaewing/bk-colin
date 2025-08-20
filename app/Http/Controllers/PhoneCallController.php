@@ -32,8 +32,6 @@ class PhoneCallController extends Controller
             ],
         ]);
 
-        Log::info('we did the input?');
-
         $ncco->addAction($input);
 
         return response()->json($ncco->toArray());
@@ -54,8 +52,8 @@ class PhoneCallController extends Controller
             ->withPrompt($topResult)
             ->asText();
 
-        $deepseekResponse = Talk::factory($response->text, []);
-        $ncco->addAction($deepseekResponse);
+        $aiResponse = Talk::factory($response->text, []);
+        $ncco->addAction($aiResponse);
 
         $input = Input::factory([
             'eventUrl' => route('voice.event'),
