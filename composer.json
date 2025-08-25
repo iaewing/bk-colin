@@ -10,6 +10,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "ardagnsrn/elevenlabs-laravel": "^1.0",
         "laravel/framework": "^12.0",
         "laravel/nightwatch": "^1.13",
         "laravel/tinker": "^2.10.1",

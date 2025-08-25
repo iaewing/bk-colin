@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use ArdaGnsrn\ElevenLabs\ElevenLabs;
+use Illuminate\Support\Str;
 use Prism\Prism\Enums\Provider;
 use Prism\Prism\Prism;
-use Vonage\Voice\NCCO\Action\Talk;
 use Vonage\Voice\NCCO\NCCO;
 use Illuminate\Support\Facades\Log;
+use Vonage\Voice\NCCO\Action\Talk;
 use Vonage\Voice\NCCO\Action\Stream;
 use Illuminate\Support\Facades\Storage;
 use Vonage\Voice\NCCO\Action\Input;
@@ -26,12 +28,14 @@ class PhoneCallController extends Controller
               'speech',
             ],
             'speech' => [
-              'endOnSilence' => 2,
+              'endOnSilence' => 1,
               'saveAudio' => true,
               'context' => ['burger', 'king', 'complaint', 'fries', 'soggy', 'cold', 'burger' ],
               'language' => 'en-US',
             ],
         ]);
+
+        Log::info('we did the input?');
 
         $ncco->addAction($input);
 
@@ -53,12 +57,18 @@ class PhoneCallController extends Controller
 
         $response = Prism::text()
             ->using(Provider::Anthropic, 'claude-3-5-haiku-20241022')
-            ->withSystemPrompt('someone just complained at burger king, and you are the middle age manager who is payed way less than you deserve. you have to respond in a way that does not lose them as a customer but also lets them know that you resent their complaint and you resent the customer as a person. only return the text that should be spoken to the customer')
+            ->withSystemPrompt('someone just complained at burger king, and you are the middle age manager who is payed way less than you deserve. you have to respond in a way that does not lose them as a customer but also lets them know that you resent their complaint and you resent the customer as a person. only return the text that should be spoken to the customer. Be sassy')
             ->withPrompt($topResult)
             ->asText();
 
-        $aiResponse = Talk::factory($response->text, []);
-        $ncco->addAction($aiResponse);
+        $elevenLabs = new ElevenLabs();
+        $response = $elevenLabs->textToSpeech(config('elevenlabs.colin_voice_id'), $response->text);
+
+        $filename = Str::uuid()->toString() . '_colin_response.mp3';
+        Storage::disk('colin_audio')->put($filename, $response->getResponse()->getBody()->getContents());
+
+        $colinSassyRemark = new Stream(Storage::disk('colin_audio')->url($filename));
+        $ncco->addAction($colinSassyRemark);
 
         $input = Input::factory([
             'eventUrl' => route('voice.event'),
@@ -66,7 +76,7 @@ class PhoneCallController extends Controller
                 'speech',
             ],
             'speech' => [
-                'endOnSilence' => 2,
+                'endOnSilence' => 1,
                 'saveAudio' => true,
                 'context' => ['burger', 'king', 'complaint', 'fries', 'soggy', 'cold', 'burger' ],
                 'language' => 'en-US',
