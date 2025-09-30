@@ -3,9 +3,8 @@
 namespace App\Http\Controllers;
 
 use ArdaGnsrn\ElevenLabs\ElevenLabs;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Prism\Prism\Enums\Provider;
 use Prism\Prism\Prism;
 use Vonage\Voice\NCCO\Action\Input;
@@ -50,16 +49,11 @@ class PhoneCallController extends Controller
         $topResult = $input['speech']['results'][0]['text'] ?? null;
 //        Cache::put($input['conversation_uuid'], $topResult);
 
-        Log::info('response: ' . $topResult);
-        Log::info('input: ', $input);
-
         if (!$topResult) {
-            Log::info('no top result');
             $talk = Talk::factory('We dont have text?', []);
             $ncco->addAction($talk);
             return response()->json($ncco->toArray());
         }
-        Log::info('past top result');
 
         $response = Prism::text()
             ->using(Provider::Anthropic, 'claude-3-5-haiku-20241022')
@@ -68,29 +62,32 @@ class PhoneCallController extends Controller
             ->asText();
 
         $elevenLabs = new ElevenLabs();
-        $response = $elevenLabs->textToSpeech(config('elevenlabs.colin_voice_id'), $response->text);
+        $response = $elevenLabs->textToSpeech(
+            config('elevenlabs.colin_voice_id'),
+            $response->text
+        );
 
         $filename = Str::uuid()->toString() . '_colin_response.mp3';
         Storage::disk('colin_audio')->put($filename, $response->getResponse()->getBody()->getContents());
 
         $colinSassyRemark = new Stream(Storage::disk('colin_audio')->url($filename));
         $ncco->addAction($colinSassyRemark);
-//        $input = Input::factory([
-//            'eventUrl' => route('voice.event'),
-//            'type' => [
-//                'speech',
-//            ],
-//            'speech' => [
-//                'endOnSilence' => 1,
-//                'saveAudio' => true,
-//                'context' => ['burger', 'king', 'complaint', 'fries', 'soggy', 'cold', 'burger'],
-//                'language' => 'en-US',
-//            ],
-//        ]);
+        $input = Input::factory([
+            'eventUrl' => route('voice.event'),
+            'type' => [
+                'speech',
+            ],
+            'speech' => [
+                'endOnSilence' => 1,
+                'saveAudio' => true,
+                'context' => ['burger', 'king', 'complaint', 'fries', 'soggy', 'cold', 'burger'],
+                'language' => 'en-US',
+            ],
+        ]);
 
-//        $ncco->addAction($input);
-//        $stream2 = new Stream(Storage::disk('colin_audio')->url('feedback.wav'));
-//        $ncco->addAction($stream2);
+        $ncco->addAction($input);
+        $stream2 = new Stream(Storage::disk('colin_audio')->url('feedback.wav'));
+        $ncco->addAction($stream2);
         return response()->json($ncco->toArray());
     }
 }
