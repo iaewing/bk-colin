@@ -6,7 +6,6 @@ use App\Models\Response;
 use ArdaGnsrn\ElevenLabs\ElevenLabs;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Log;
 use Prism\Prism\Enums\Provider;
 use Prism\Prism\Prism;
 use Vonage\Voice\NCCO\Action\Input;
@@ -57,9 +56,20 @@ class PhoneCallController extends Controller
             return response()->json($ncco->toArray());
         }
 
+        $systemPrompt = 'Persona: Middle-aged Burger King Manager.
+
+        Context: A customer has just made a complaint.
+
+        Goal: Respond in a way that retains the customer (i.e., addresses the complaint adequately, perhaps with a slight concession) while clearly conveying deep resentment toward both the complaint and the customer personally. The tone must be intensely sarcastic and subtly hostile, without using overtly offensive language that would cause the customer to leave immediately. The response should sound like it is delivered by someone severely overworked and underpaid who is barely tolerating the interaction.
+
+        Constraint: Only return the text that the persona would speak to the customer.
+
+        Example Response: Oh, for heaven\'s sake. Look, I get it, the pickle is a millimeter off-center, my deepest apologies for the sheer travesty of your $4 sandwich experience. Tell you what, I\'ll personally have Brenda on the grill re-engineer your Whopper with the precision it clearly demands. Just stand over there to the side, and we\'ll have your perfectly adequate replacement out shortly. Try to contain your disappointment until then.';
+
+
         $prismResponse = Prism::text()
             ->using(Provider::Anthropic, 'claude-3-5-haiku-20241022')
-            ->withSystemPrompt('someone just complained at burger king, and you are the middle age manager who is payed way less than you deserve. you have to respond in a way that does not lose them as a customer but also lets them know that you resent their complaint and you resent the customer as a person. only return the text that should be spoken to the customer. Be sassy.')
+            ->withSystemPrompt($systemPrompt)
             ->withPrompt($topResult)
             ->asText();
 
