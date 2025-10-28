@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Response;
 use ArdaGnsrn\ElevenLabs\ElevenLabs;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Log;
 use Prism\Prism\Enums\Provider;
 use Prism\Prism\Prism;
 use Vonage\Voice\NCCO\Action\Input;
@@ -55,7 +57,7 @@ class PhoneCallController extends Controller
             return response()->json($ncco->toArray());
         }
 
-        $response = Prism::text()
+        $prismResponse = Prism::text()
             ->using(Provider::Anthropic, 'claude-3-5-haiku-20241022')
             ->withSystemPrompt('someone just complained at burger king, and you are the middle age manager who is payed way less than you deserve. you have to respond in a way that does not lose them as a customer but also lets them know that you resent their complaint and you resent the customer as a person. only return the text that should be spoken to the customer. Be sassy.')
             ->withPrompt($topResult)
@@ -64,13 +66,22 @@ class PhoneCallController extends Controller
         $elevenLabs = new ElevenLabs();
         $response = $elevenLabs->textToSpeech(
             config('elevenlabs.colin_voice_id'),
-            $response->text
+            $prismResponse->text
         );
 
         $filename = Str::uuid()->toString() . '_colin_response.mp3';
         Storage::disk('colin_audio')->put($filename, $response->getResponse()->getBody()->getContents());
 
         $colinSassyRemark = new Stream(Storage::disk('colin_audio')->url($filename));
+
+        Response::query()
+            ->create([
+                'prompt_text' => $topResult,
+                'text' => $prismResponse->text,
+                'recording_url' => Storage::disk('colin_audio')->url($filename),
+                'call_uuid' => $input['conversation_uuid']
+            ]);
+
         $ncco->addAction($colinSassyRemark);
         $input = Input::factory([
             'eventUrl' => route('voice.event'),
