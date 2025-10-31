@@ -4,11 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Response;
 use ArdaGnsrn\ElevenLabs\ElevenLabs;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Prism\Prism\Enums\Provider;
 use Prism\Prism\Prism;
+use Psr\SimpleCache\InvalidArgumentException;
 use Vonage\Voice\NCCO\Action\Input;
 use Vonage\Voice\NCCO\Action\Stream;
 use Vonage\Voice\NCCO\Action\Talk;
@@ -41,10 +44,19 @@ class PhoneCallController extends Controller
         return response()->json($ncco->toArray());
     }
 
-    public function event()
+    public function event(): ?JsonResponse
     {
         $ncco = new NCCO();
         $request = request()->all();
+Log::info('we are in the event');
+        // mutex system?
+        $conversationUUID = $request['conversation_uuid'];
+        if (Cache::has($conversationUUID)) {
+            Log::info('we are bailing');
+            return response()->json();
+        }
+        Cache::put($conversationUUID, true);
+Log::info('we are continuing and have cached the uuid');
 
         // TODO: We can implement the cacheing again and use the DB as the driver
 //        $previousDialog = Cache::get($input['conversation_uuid']);
@@ -74,7 +86,7 @@ class PhoneCallController extends Controller
             ->withSystemPrompt($systemPrompt)
             ->withPrompt($topResult)
             ->asText();
-        Log::info('Generated response for call: ' . $request['conversation_uuid'] . $prismResponse->text);
+        Log::info('Generated response for call: ' . $conversationUUID . $prismResponse->text);
 
         $elevenLabs = new ElevenLabs();
         $response = $elevenLabs->textToSpeech(
@@ -105,8 +117,13 @@ class PhoneCallController extends Controller
         $ncco->addAction($input);
         $stream2 = new Stream(Storage::disk('colin_audio')->url('feedback.wav'));
         $ncco->addAction($stream2);
-        $this->recordRecord($topResult, $prismResponse, $filename, $request['conversation_uuid']);
-        Log::info('returning response');
+        $this->recordRecord($topResult, $prismResponse, $filename, $conversationUUID);
+
+        try {
+            Cache::delete($conversationUUID);
+        } catch (InvalidArgumentException $e) {
+        }
+        Log::info('we are cleaning up the cache');
         return response()->json($ncco->toArray());
     }
 
