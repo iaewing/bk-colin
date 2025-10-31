@@ -44,12 +44,12 @@ class PhoneCallController extends Controller
     public function event()
     {
         $ncco = new NCCO();
-        $input = request()->all();
+        $request = request()->all();
 
         // TODO: We can implement the cacheing again and use the DB as the driver
 //        $previousDialog = Cache::get($input['conversation_uuid']);
 //        Log::info($previousDialog);
-        $topResult = $input['speech']['results'][0]['text'] ?? null;
+        $topResult = $request['speech']['results'][0]['text'] ?? null;
 //        Cache::put($input['conversation_uuid'], $topResult);
 
         if (!$topResult) {
@@ -74,7 +74,7 @@ class PhoneCallController extends Controller
             ->withSystemPrompt($systemPrompt)
             ->withPrompt($topResult)
             ->asText();
-        Log::info('Generated response for call: ' . $input['conversation_uuid'] . $prismResponse->text);
+        Log::info('Generated response for call: ' . $request['conversation_uuid'] . $prismResponse->text);
 
         $elevenLabs = new ElevenLabs();
         $response = $elevenLabs->textToSpeech(
@@ -105,7 +105,7 @@ class PhoneCallController extends Controller
         $ncco->addAction($input);
         $stream2 = new Stream(Storage::disk('colin_audio')->url('feedback.wav'));
         $ncco->addAction($stream2);
-        $this->recordRecord($topResult, $prismResponse, $filename, $input['conversation_uuid']);
+        $this->recordRecord($topResult, $prismResponse, $filename, $request['conversation_uuid']);
         Log::info('returning response');
         return response()->json($ncco->toArray());
     }
