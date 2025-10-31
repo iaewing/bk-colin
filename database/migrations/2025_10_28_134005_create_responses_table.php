@@ -16,7 +16,7 @@ return new class extends Migration
             $table->text('prompt_text');
             $table->text('text');
             $table->text('recording_url');
-            $table->uuid('call_uuid');
+            $table->text('call_uuid');
             $table->timestamps();
             $table->softDeletes();
         });

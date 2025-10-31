@@ -45,6 +45,7 @@ class PhoneCallController extends Controller
         $ncco = new NCCO();
         $input = request()->all();
 
+        // TODO: We can implement the cacheing again and use the DB as the driver
 //        $previousDialog = Cache::get($input['conversation_uuid']);
 //        Log::info($previousDialog);
         $topResult = $input['speech']['results'][0]['text'] ?? null;
