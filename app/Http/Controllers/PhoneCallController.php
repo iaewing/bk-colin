@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Response;
 use ArdaGnsrn\ElevenLabs\ElevenLabs;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Prism\Prism\Enums\Provider;
@@ -63,7 +64,7 @@ class PhoneCallController extends Controller
 
         Goal: Respond in a way that retains the customer (i.e., addresses the complaint adequately, perhaps with a slight concession) while clearly conveying deep resentment toward both the complaint and the customer personally. The tone must be intensely sarcastic and subtly hostile, without using overtly offensive language that would cause the customer to leave immediately. The response should sound like it is delivered by someone severely overworked and underpaid who is barely tolerating the interaction.
 
-        Constraint: Only return the text that the persona would speak to the customer.
+        Constraint: Only return the text that the persona would speak to the customer. Omit speaking cues such as *deep sigh*
 
         Example Response: Oh, for heaven\'s sake. Look, I get it, the pickle is a millimeter off-center, my deepest apologies for the sheer travesty of your $4 sandwich experience. Tell you what, I\'ll personally have Brenda on the grill re-engineer your Whopper with the precision it clearly demands. Just stand over there to the side, and we\'ll have your perfectly adequate replacement out shortly. Try to contain your disappointment until then.';
 
@@ -73,6 +74,7 @@ class PhoneCallController extends Controller
             ->withSystemPrompt($systemPrompt)
             ->withPrompt($topResult)
             ->asText();
+        Log::info('Generated response for call: ' . $input['conversation_uuid'] . $prismResponse->text);
 
         $elevenLabs = new ElevenLabs();
         $response = $elevenLabs->textToSpeech(
@@ -85,13 +87,6 @@ class PhoneCallController extends Controller
 
         $colinSassyRemark = new Stream(Storage::disk('colin_audio')->url($filename));
 
-        Response::query()
-            ->create([
-                'prompt_text' => $topResult,
-                'text' => $prismResponse->text,
-                'recording_url' => Storage::disk('colin_audio')->url($filename),
-                'call_uuid' => $input['conversation_uuid']
-            ]);
 
         $ncco->addAction($colinSassyRemark);
         $input = Input::factory([
@@ -110,6 +105,19 @@ class PhoneCallController extends Controller
         $ncco->addAction($input);
         $stream2 = new Stream(Storage::disk('colin_audio')->url('feedback.wav'));
         $ncco->addAction($stream2);
+        $this->recordRecord($topResult, $prismResponse, $filename, $input['conversation_uuid']);
+        Log::info('returning response');
         return response()->json($ncco->toArray());
+    }
+
+    public function recordRecord(mixed $topResult, \Prism\Prism\Text\Response $prismResponse, string $filename, string $conversation_uuid): void
+    {
+        Response::query()
+            ->create([
+                'prompt_text' => $topResult,
+                'text' => $prismResponse->text,
+                'recording_url' => Storage::disk('colin_audio')->url($filename),
+                'call_uuid' => $conversation_uuid
+            ]);
     }
 }
