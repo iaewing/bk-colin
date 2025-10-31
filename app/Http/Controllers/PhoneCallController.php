@@ -70,7 +70,7 @@ class PhoneCallController extends Controller
 
 
         $prismResponse = Prism::text()
-            ->using(Provider::Anthropic, 'claude-3-5-haiku-20241022')
+            ->using(Provider::Anthropic, 'claude-haiku-4-5')
             ->withSystemPrompt($systemPrompt)
             ->withPrompt($topResult)
             ->asText();
